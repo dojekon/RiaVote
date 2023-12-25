@@ -11,9 +11,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def read_config(filename='config.ini'):
     config = configparser.ConfigParser()
     config.read(filename)
-    return config['Vote']['vote_id'], config['Vote']['g_recaptcha_response']
+    return config['Vote']['vote_id'],config['Vote']['vote_answer_id'], config['Vote']['g_recaptcha_response']
 
-def vote(vote_id, g_recaptcha_response):
+def vote(vote_id, vote_answer_id, g_recaptcha_response):
     url = 'https://ria.ru/services/vote/add/'
     headers = {
         'Accept': '*/*',
@@ -34,15 +34,16 @@ def vote(vote_id, g_recaptcha_response):
 
     data = {
         'vote_id': vote_id,
-        'vote_answer_id%5B%5D': g_recaptcha_response
+        'vote_answer_id%5B%5D': vote_answer_id,
+        'g_recaptcha_response': g_recaptcha_response 
     }
 
     response = requests.post(url, headers=headers, data=data)
     return response
 
-def vote_in_thread(vote_id, g_recaptcha_response, thread_number):
+def vote_in_thread(vote_id, vote_answer_id, g_recaptcha_response, thread_number):
     while True:
-        response = vote(vote_id, g_recaptcha_response)
+        response = vote(vote_id,vote_answer_id, g_recaptcha_response)
         if response.status_code == 200:
             logging.info(f'Thread {thread_number}: Vote successful')
         else:
@@ -50,12 +51,12 @@ def vote_in_thread(vote_id, g_recaptcha_response, thread_number):
         time.sleep(10)
 
 # Чтение параметров из конфигурационного файла
-vote_id, g_recaptcha_response = read_config()
+vote_id, vote_answer_id, g_recaptcha_response = read_config()
 
 # Запуск 10 потоков
 threads = []
 for i in range(10):
-    thread = threading.Thread(target=vote_in_thread, args=(vote_id, g_recaptcha_response, i + 1))
+    thread = threading.Thread(target=vote_in_thread, args=(vote_id,vote_answer_id, g_recaptcha_response, i + 1))
     threads.append(thread)
     thread.start()
 
